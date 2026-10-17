@@ -34,6 +34,14 @@ class MeaningInputLimitException : Exception("This caption is too long to transl
 
 class EmptyMeaningException : Exception("The translation came back empty.")
 
+/** Quiet periods and minimum gap between translation requests for one caption. */
+data class MeaningPacing(val sentenceDelayMillis: Long, val incompleteDelayMillis: Long, val minimumSpacingMillis: Long) {
+    companion object {
+        /** A personal key has no hosted per-minute helper budget, so captions can follow the voice closely. */
+        val PERSONAL_KEY = MeaningPacing(sentenceDelayMillis = 150, incompleteDelayMillis = 600, minimumSpacingMillis = 500)
+    }
+}
+
 /** Waits for a sentence or quiet transcript, then keeps one translation in flight. */
 class MeaningController(
     private val scope: CoroutineScope,
@@ -43,6 +51,7 @@ class MeaningController(
     private val retryDelay: (Throwable) -> Long? = { null },
     private val minimumSpacingMillis: Long = 2500,
     private val now: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val pacing: (MeaningRequest) -> MeaningPacing? = { null },
     private val stream: (suspend (MeaningRequest, (String) -> Unit) -> MeaningResult)? = null,
     private val translate: suspend (MeaningRequest) -> MeaningResult,
 ) {
@@ -150,9 +159,10 @@ class MeaningController(
             var dispatched: MeaningRequest? = null
             try {
                 val initial = desired ?: return@launch
+                val pace = pacing(initial) ?: MeaningPacing(delayMillis, incompleteDelayMillis, minimumSpacingMillis)
                 val current = now()
-                val quietUntil = desiredUpdatedAt + if (finalRequested) 0 else if (endsSentence(initial.text, initial.learningLanguageID)) delayMillis else incompleteDelayMillis
-                val pacedUntil = lastDispatchedAt?.let { it + minimumSpacingMillis } ?: current
+                val quietUntil = desiredUpdatedAt + if (finalRequested) 0 else if (endsSentence(initial.text, initial.learningLanguageID)) pace.sentenceDelayMillis else pace.incompleteDelayMillis
+                val pacedUntil = lastDispatchedAt?.let { it + pace.minimumSpacingMillis } ?: current
                 delay((maxOf(quietUntil, pacedUntil, retryNotBefore) - current).coerceAtLeast(0))
                 val request = desired
                 if (token != generation || request == null) return@launch

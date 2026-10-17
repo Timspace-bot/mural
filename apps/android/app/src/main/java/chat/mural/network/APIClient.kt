@@ -110,15 +110,17 @@ class APIClient private constructor(
         search: Boolean,
         purpose: HelperPurpose?,
     ): APIResult {
-        val body = responseBody(instructions, input, schema, search)
+        val body = responseBody(instructions, input, schema, search,
+            if (purpose == HelperPurpose.MEANING) MEANING_MODEL else TEACHING_MODEL)
 
         val response = post("responses", body)
         return decodeTeachingResponse(response)
     }
 
-    private fun responseBody(instructions: String, input: String, schema: JsonObject?, search: Boolean): JsonObject {
+    private fun responseBody(instructions: String, input: String, schema: JsonObject?, search: Boolean,
+        model: String = TEACHING_MODEL): JsonObject {
         return buildJsonObject {
-            put("model", "gpt-6-luna")
+            put("model", model)
             put("store", false)
             put("instructions", instructions)
             put("input", buildJsonArray {
@@ -149,7 +151,8 @@ class APIClient private constructor(
     override suspend fun streamMeaning(instructions: String, input: String, onText: (String) -> Unit): APIResult {
         val key = readCredential() ?: throw APIException.MissingKey
         val body = buildJsonObject {
-            responseBody(instructions, input, null, false).forEach { (key, value) -> put(key, value) }
+            // Subtitles trail the voice by the helper's response time, so they use the faster model.
+            responseBody(instructions, input, null, false, MEANING_MODEL).forEach { (key, value) -> put(key, value) }
             put("stream", true)
         }
         val request = Request.Builder().url(baseUrl.newBuilder().addPathSegments("responses").build())
@@ -227,6 +230,8 @@ class APIClient private constructor(
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         private val VALID_PATH = Regex("[a-z0-9][a-z0-9_/-]*")
         private const val MAX_RESPONSE_BYTES = 1_048_576L
+        internal const val TEACHING_MODEL = "gpt-6-luna"
+        internal const val MEANING_MODEL = "gpt-5.6-luna"
         private val JSON = Json { ignoreUnknownKeys = true }
 
         private fun defaultClient() = OkHttpClient.Builder()

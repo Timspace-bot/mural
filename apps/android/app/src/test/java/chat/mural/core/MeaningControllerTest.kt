@@ -334,6 +334,21 @@ class MeaningControllerTest {
         assertFalse(controller.isLoading)
     }
 
+    @Test fun personalKeyPacingFollowsTheVoiceWithoutHostedSpacing() = runTest {
+        val dispatched = mutableListOf<String>()
+        val controller = MeaningController(backgroundScope, minimumSpacingMillis = 2500, now = { testScheduler.currentTime },
+            pacing = { MeaningPacing.PERSONAL_KEY }) { dispatched += it.text; MeaningResult(it.text) }
+        controller.update(request("Hola, ¿qué")); runCurrent()
+        advanceTimeBy(599); runCurrent()
+        assertTrue(dispatched.isEmpty())
+        advanceTimeBy(2); runCurrent()
+        assertEquals(listOf("Hola, ¿qué"), dispatched)
+        controller.update(request("Hola, ¿qué tal?", 1)); runCurrent()
+        advanceTimeBy(500); runCurrent()
+        // The hosted 2.5 s spacing would still be waiting here.
+        assertEquals(listOf("Hola, ¿qué", "Hola, ¿qué tal?"), dispatched)
+    }
+
     @Test fun safeRateBackoffKeepsLoadingAndRetriesTheLatestRevision() = runTest {
         val dispatched = mutableListOf<String>()
         val controller = MeaningController(backgroundScope, delayMillis = 0, incompleteDelayMillis = 0,
