@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.window.Dialog
@@ -130,11 +132,8 @@ fun TalkScreen(
     val readingSpace by animateFloatAsState(
         if (longPassage || hasMandarinReading) 1f else 0f, spring(dampingRatio = 1f, stiffness = 260f), label = "passage reading space",
     )
-    val orbSize = when {
-        scrollPage -> 170.dp
-        compact -> maxOf(120.dp, minOf(150.dp, maxHeight * .24f) - 26.dp * readingSpace)
-        else -> maxOf(150.dp, minOf(220.dp, maxHeight * .27f) - 64.dp * readingSpace)
-    }
+    // Without the orb, the captions share the free space instead of fixed boxes.
+    fun ColumnScope.captionHeight(fixed: Dp, weight: Float): Modifier = if (scrollPage) Modifier.height(fixed) else Modifier.weight(weight)
     Column(
         Modifier
             .fillMaxSize()
@@ -150,12 +149,6 @@ fun TalkScreen(
             )
         }
         Spacer(Modifier.height(if (compactReading) 4.dp else if (compact) 8.dp else 24.dp - 16.dp * readingSpace))
-        MuralOrb(
-            energy = maxOf(vm.outputLevel.toFloat(), vm.inputLevel.toFloat() * .45f),
-            listening = vm.state == "active" && vm.isVoiceSession && !vm.isMuted,
-            active = vm.state != "closing",
-            modifier = Modifier.size(orbSize).testTag("talk-orb"),
-        )
         Box(Modifier.fillMaxWidth().padding(top = if (compactReading) 0.dp else if (compact) 8.dp else 12.dp)
             .heightIn(min = if (compactReading) 24.dp else 40.dp), contentAlignment = Alignment.Center) {
             val status = if (vm.hasContinuation) {
@@ -190,7 +183,7 @@ fun TalkScreen(
             verticalArrangement = Arrangement.Center,
         ) {
         Column(
-            modifier = (if (passage == null) Modifier else Modifier.height(with(LocalDensity.current) { 90.dp * fontScale } + (if (hasMandarinReading) 58.dp else 0.dp)).passageScroll(targetScroll).then(targetFollowing))
+            modifier = (if (passage == null) Modifier else captionHeight(with(LocalDensity.current) { 90.dp * fontScale } + (if (hasMandarinReading) 58.dp else 0.dp), 1.4f).passageScroll(targetScroll).then(targetFollowing))
                 .fillMaxWidth().testTag("target-passage-scroll"),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -209,7 +202,7 @@ fun TalkScreen(
         if (vm.archive.preferences.meaningVisible) {
             Spacer(Modifier.height(10.dp))
             Column(
-                modifier = (if (passage == null) Modifier else Modifier.height(with(LocalDensity.current) { 66.dp * fontScale } + (if (vm.meaningFailed) 60.dp else 0.dp)).passageScroll(meaningScroll).then(meaningFollowing))
+                modifier = (if (passage == null) Modifier else captionHeight(with(LocalDensity.current) { 66.dp * fontScale } + (if (vm.meaningFailed) 60.dp else 0.dp), 1f).passageScroll(meaningScroll).then(meaningFollowing))
                     .fillMaxWidth().testTag("meaning-passage-scroll"),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

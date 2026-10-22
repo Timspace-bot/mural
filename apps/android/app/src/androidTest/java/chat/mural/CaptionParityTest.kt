@@ -223,11 +223,10 @@ class CaptionParityTest {
         val target = compose.onNodeWithTag("target-caption").fetchSemanticsNode().boundsInRoot
         val meaning = compose.onNodeWithTag("meaning-caption").fetchSemanticsNode().boundsInRoot
         val microphone = compose.onNodeWithTag("start-conversation").fetchSemanticsNode().boundsInRoot
-        val orb = compose.onNodeWithTag("talk-orb").fetchSemanticsNode().boundsInRoot
+        compose.onNodeWithTag("talk-orb").assertDoesNotExist()
         capture("compact-idle-greeting")
         assertTrue("Greeting and meaning overlap: target=$target meaning=$meaning", target.bottom <= meaning.top)
         assertTrue("Meaning overlaps microphone: meaning=$meaning microphone=$microphone", meaning.bottom <= microphone.top)
-        assertTrue("Orb shrank below 120 dp", orb.width / compose.density.density >= 119f)
         compose.runOnIdle { state("hostedReadiness", HostedReadiness()) }
         compose.onNodeWithText("Couldn’t check your Mural minutes.").assertDoesNotExist()
         compose.runOnIdle {
@@ -545,8 +544,8 @@ class CaptionParityTest {
         android.util.Log.i("MuralCaptionCheck", "Long caption: render")
         show("zh", sentence, "Hello! Nice to meet you. Your Chinese is good. We can go to a café, then the bank, and buy a few things. What do you think?")
         assertTextVisible("target-caption", false); assertTextVisible("meaning-caption", false)
-        val orb = compose.onNodeWithTag("talk-orb").fetchSemanticsNode().boundsInRoot
-        assertTrue("Orb shrank below 120 dp", orb.width / compose.density.density >= 119f)
+        // The Talk orb was removed so live captions can use its space.
+        compose.onNodeWithTag("talk-orb").assertDoesNotExist()
         android.util.Log.i("MuralCaptionCheck", "Long caption: capture")
         capture("mandarin-long-caption")
         android.util.Log.i("MuralCaptionCheck", "Long caption: scroll reading")
