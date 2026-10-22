@@ -52,6 +52,8 @@ android {
     if (personalDebugKey.exists()) signingConfigs.getByName("debug").storeFile = personalDebugKey
     // Interface tests install as a separate app so they never read or change a learner's data.
     buildTypes {
+        // The personal-install APK is a separate "Evil Mural" app, so it never replaces the store app.
+        getByName("debug") { applicationIdSuffix = ".evil" }
         create("voiceVerification") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".verification"
