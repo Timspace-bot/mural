@@ -1,0 +1,43 @@
+name: Evil Mural APK
+# Publishes the personal-install debug APK as a public release asset, so it can be
+# downloaded on a phone without signing in to GitHub.
+on:
+  push:
+    branches: [main, claude/mural-performance-optimization-xkjrhw]
+    paths: ['apps/android/**', '.github/workflows/evil-mural-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: evil-mural-apk
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install SDK components
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Build debug APK
+        working-directory: apps/android
+        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Publish release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk evil-mural.apk
+          notes="Evil Mural debug build from ${GITHUB_REF_NAME} at ${GITHUB_SHA::7}. Download evil-mural.apk and open it on your phone."
+          if gh release view evil-mural >/dev/null 2>&1; then
+            gh release upload evil-mural evil-mural.apk --clobber
+            gh release edit evil-mural --notes "$notes"
+          else
+            gh release create evil-mural evil-mural.apk --title "Evil Mural" --notes "$notes" --target "$GITHUB_SHA"
+          fi

@@ -1,0 +1,4 @@
+<resources>
+    <string name="evil_mural_app_name" translatable="false">Evil Mural</string>
+    <color name="evil_mural_background">#000611</color>
+</resources>

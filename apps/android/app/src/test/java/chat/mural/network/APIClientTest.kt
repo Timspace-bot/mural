@@ -47,7 +47,9 @@ class APIClientTest {
         assertEquals("你好 café", result.text); assertEquals(APIUsage(12, 7), result.usage)
         val sent = server.takeRequest()
         assertEquals("text/event-stream", sent.getHeader("Accept"))
-        assertEquals(JsonPrimitive(true), Json.parseToJsonElement(sent.body.readUtf8()).jsonObject["stream"])
+        val sentBody = Json.parseToJsonElement(sent.body.readUtf8()).jsonObject
+        assertEquals(JsonPrimitive(true), sentBody["stream"])
+        assertEquals(JsonPrimitive("gpt-5.6-luna"), sentBody["model"])
         assertEquals(1, server.requestCount)
     }
     @Test fun streamErrorsAndMissingCompletionNeverBecomeSuccessfulRepliesOrRetry() = runBlocking {

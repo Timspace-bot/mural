@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal builds install beside the store app as "Evil Mural" with an inverted icon. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application android:label="@string/evil_mural_app_name" android:icon="@mipmap/ic_evil_mural"
+        android:roundIcon="@mipmap/ic_evil_mural" tools:replace="android:label,android:icon,android:roundIcon" />
+</manifest>

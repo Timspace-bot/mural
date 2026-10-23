@@ -246,7 +246,9 @@ class MuralViewModel(application: Application) : AndroidViewModel(application) {
     private var assessmentJob: Job? = null
     private var actionJob: Job? = null
     private val meanings = MeaningController(viewModelScope, canRetryFailure = HostedHelperRetry::canRetryAtBoundary,
-        retryDelay = HostedHelperRetry::automaticDelay, stream = { request, onText -> translateMeaning(request, onText) }) { request -> translateMeaning(request) }
+        retryDelay = HostedHelperRetry::automaticDelay,
+        pacing = { request -> if (request.sessionID in hostedSessionIDs) null else MeaningPacing.PERSONAL_KEY },
+        stream = { request, onText -> translateMeaning(request, onText) }) { request -> translateMeaning(request) }
     private suspend fun translateMeaning(request: MeaningRequest, onText: ((String) -> Unit)? = null): MeaningResult {
         if (archive.preferences.aiConsentVersion != 1) throw IllegalStateException("AI processing consent is required.")
         val module = LanguageRegistry.get(request.learningLanguageID) ?: throw IllegalStateException("Unsupported language.")
